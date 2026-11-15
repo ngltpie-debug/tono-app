@@ -1,0 +1,263 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: #f4f8f5;
+  color: #24382c;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.tono-app {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+
+.tono-container {
+  width: 100%;
+  max-width: 480px;
+  padding: 38px 25px;
+  background: #ffffff;
+  border-radius: 24px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.07);
+}
+
+.logo {
+  margin-bottom: 10px;
+  color: #159447;
+  font-size: 52px;
+  font-weight: 800;
+  letter-spacing: 3px;
+}
+
+h1 {
+  margin: 10px 0;
+  color: #183b25;
+  font-size: 24px;
+  line-height: 1.4;
+}
+
+h2 {
+  margin-bottom: 20px;
+  color: #183b25;
+  font-size: 22px;
+}
+
+.subtitle {
+  margin-bottom: 35px;
+  color: #6b776f;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.footer {
+  margin-top: 35px;
+  color: #999;
+  font-size: 13px;
+}
+
+.role-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.role-button {
+  width: 100%;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  border: none;
+  border-radius: 18px;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.role-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.07);
+}
+
+.customer {
+  background: #e9f8ee;
+}
+
+.business {
+  background: #eef4ff;
+}
+
+.icon {
+  margin-right: 18px;
+  font-size: 38px;
+}
+
+.role-button strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #183b25;
+  font-size: 18px;
+}
+
+.role-button small {
+  display: block;
+  color: #66736a;
+  font-size: 14px;
+}
+
+.back-button {
+  display: block;
+  margin-bottom: 20px;
+  padding: 9px 0;
+  border: none;
+  background: transparent;
+  color: #159447;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.location-button {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 15px;
+  border: 1px solid #159447;
+  border-radius: 13px;
+  background: #ffffff;
+  color: #159447;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.location-button:hover {
+  background: #f0faf3;
+}
+
+.location-message {
+  margin: -2px 0 14px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #eef8f0;
+  color: #25723c;
+  font-size: 14px;
+  text-align: center;
+}
+/* Lưới danh mục nhu cầu khách hàng */
+.category-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #d7e8dc;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  color: #24382c;
+  text-align: left;
+}
+
+.category-item.active {
+  border: 2px solid #159447;
+  background: #e9f8ee;
+  color: #159447;
+  font-weight: 700;
+}
+
+/* Thẻ cửa hàng hiển thị dưới bản đồ */
+.store-card {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  margin-top: 16px;
+  border: 1px solid #e0ebe7;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  text-align: left;
+  cursor: pointer;
+}
+
+.store-card:hover {
+  border-color: #159447;
+}
+
+.store-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #ff4d4f;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: bold;
+  margin: 4px 0;
+}
+
+/* Lưới sản phẩm chi tiết */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.product-card {
+  border: 1px solid #e8f0ec;
+  border-radius: 12px;
+  padding: 8px;
+  text-align: left;
+  background: #ffffff;
+}
+
+.product-price {
+  color: #e53935;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.product-old-price {
+  color: #999;
+  text-decoration: line-through;
+  font-size: 11px;
+}
+
+/* Thanh menu dưới cùng (Bottom Nav) */
+.bottom-nav {
+  display: flex;
+  justify-content: space-around;
+  border-top: 1px solid #e7eee9;
+  padding-top: 12px;
+  margin-top: 20px;
+}
+
+.nav-item {
+  background: none;
+  border: none;
+  color: #6b776f;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.nav-item.active {
+  color: #159447;
+  font-weight: 700;
+}
