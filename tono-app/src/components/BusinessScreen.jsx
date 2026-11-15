@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { NORTH_LOCATIONS } from '../data/northLocations'
+import { NORTH_LOCATIONS } from '../../data/northLocations'
+import { supabase } from '../supabaseClient'
 
 const CATEGORIES = [
   '🍱 Thực phẩm đóng gói',
@@ -12,10 +13,10 @@ const CATEGORIES = [
   '📦 Khác'
 ]
 
-export default function BusinessScreen({ initialMode, businessData, onSaveBusiness, products, setProducts, onLogout }) {
+export default function BusinessScreen({ initialMode, businessData, onSaveBusiness, products, setProducts, onLogout, refreshData }) {
   const cities = Object.keys(NORTH_LOCATIONS)
   
-  const [step, setStep] = useState(initialMode || 'dashboard') // 'register' | 'dashboard' | 'add-product' | 'edit-product'
+  const [step, setStep] = useState(initialMode || 'dashboard')
 
   const [name, setName] = useState(businessData ? businessData.name : '')
   const [password, setPassword] = useState(businessData ? businessData.password : '')
@@ -47,51 +48,52 @@ export default function BusinessScreen({ initialMode, businessData, onSaveBusine
 
     const newBiz = { name, password, city, district }
     onSaveBusiness(newBiz)
-    alert('Đăng ký tài khoản doanh nghiệp thành công!')
   }
 
-  function handleSaveProduct(e) {
+  async function handleSaveProduct(e) {
     e.preventDefault()
     if (!prodName || !salePrice) {
       alert('Vui lòng điền tên hàng hóa và giá sau giảm!')
       return
     }
 
-    if (editingId) {
-      // Cập nhật sản phẩm đang sửa
-      const updated = products.map(p => {
-        if (p.id === editingId) {
-          return {
-            ...p,
-            name: prodName,
-            category: prodCategory,
-            image: prodImage || '📦',
-            origPrice: origPrice ? Number(origPrice).toLocaleString() + 'đ' : '---',
-            salePrice: Number(salePrice).toLocaleString() + 'đ',
-            stock: prodStock ? Number(prodStock) : 1,
-            desc: prodDesc || 'Hàng xả kho chất lượng'
-          }
-        }
-        return p
-      })
-      setProducts(updated)
-      alert('Cập nhật mặt hàng thành công!')
-    } else {
-      // Thêm mới sản phẩm
-      const newProduct = {
-        id: Date.now(),
-        name: prodName,
-        category: prodCategory,
-        image: prodImage || '📦',
-        origPrice: origPrice ? Number(origPrice).toLocaleString() + 'đ' : '---',
-        salePrice: Number(salePrice).toLocaleString() + 'đ',
-        stock: prodStock ? Number(prodStock) : 1,
-        desc: prodDesc || 'Hàng tồn kho chất lượng'
-      }
-      setProducts([newProduct, ...products])
-      alert('Đăng tải mặt hàng thành công!')
+    const payload = {
+      business_id: businessData ? businessData.id : 1,
+      name: prodName,
+      category: prodCategory,
+      image: prodImage || '📦',
+      original_price: origPrice ? Number(origPrice) : 0,
+      sale_price: Number(salePrice),
+      stock: prodStock ? Number(prodStock) : 1,
+      condition_note: prodDesc || 'Hàng xả kho chất lượng'
     }
 
+    if (editingId) {
+      // Cập nhật sản phẩm trên Supabase
+      const { error } = await supabase
+        .from('products')
+        .update(payload)
+        .eq('id', editingId)
+
+      if (error) {
+        alert('Lỗi cập nhật: ' + error.message)
+        return
+      }
+      alert('Cập nhật mặt hàng thành công!')
+    } else {
+      // Thêm mới sản phẩm lên Supabase
+      const { error } = await supabase
+        .from('products')
+        .insert([payload])
+
+      if (error) {
+        alert('Lỗi thêm sản phẩm: ' + error.message)
+        return
+      }
+      alert('Đăng tải mặt hàng lên đám mây thành công!')
+    }
+
+    if (refreshData) refreshData()
     resetProductForm()
     setStep('dashboard')
   }
@@ -101,17 +103,21 @@ export default function BusinessScreen({ initialMode, businessData, onSaveBusine
     setProdName(p.name)
     setProdCategory(p.category)
     setProdImage(p.image)
-    setOrigPrice(p.origPrice.replace(/[^0-9]/g, ''))
-    setSalePrice(p.salePrice.replace(/[^0-9]/g, ''))
+    setOrigPrice(p.origPrice ? p.origPrice.replace(/[^0-9]/g, '') : '')
+    setSalePrice(p.salePrice ? p.salePrice.replace(/[^0-9]/g, '') : '')
     setProdStock(p.stock)
     setProdDesc(p.desc || '')
     setStep('add-product')
   }
 
-  function handleDeleteProduct(id) {
+  async function handleDeleteProduct(id) {
     if (confirm('Bạn có chắc chắn muốn xóa mặt hàng này khỏi hệ thống xả kho?')) {
-      const filtered = products.filter(p => p.id !== id)
-      setProducts(filtered)
+      const { error } = await supabase.from('products').delete().eq('id', id)
+      if (error) {
+        alert('Xóa thất bại: ' + error.message)
+        return
+      }
+      if (refreshData) refreshData()
     }
   }
 
@@ -125,6 +131,9 @@ export default function BusinessScreen({ initialMode, businessData, onSaveBusine
     setProdDesc('')
   }
 
+  // Lọc danh sách sản phẩm thuộc về doanh nghiệp hiện tại đang đăng nhập
+  const myProducts = businessData ? products.filter(p => p.business_id === businessData.id || !p.business_id) : []
+
   if (step === 'register') {
     return (
       <div className="tono-app">
@@ -136,11 +145,11 @@ export default function BusinessScreen({ initialMode, businessData, onSaveBusine
           <form onSubmit={handleRegisterSubmit}>
             <div className="form-group" style={{ marginBottom: '12px' }}>
               <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Tên doanh nghiệp / Cửa hàng *</label>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ví dụ: Kho hàng Minh Phát" style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #d0e0d5', fontSize: '13px', boxSizing: 'border-box' }} />
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ví dụ: Kho hàng Minh Phát" style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #d0e0d5', fontSize: '13px', boxSizing: 'border-box' }} required />
             </div>
             <div className="form-group" style={{ marginBottom: '12px' }}>
               <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Mật khẩu dùng để đăng nhập sau này *</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mật khẩu riêng của tài khoản" style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #d0e0d5', fontSize: '13px', boxSizing: 'border-box' }} />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mật khẩu riêng của tài khoản" style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #d0e0d5', fontSize: '13px', boxSizing: 'border-box' }} required />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
               <div>
@@ -179,7 +188,7 @@ export default function BusinessScreen({ initialMode, businessData, onSaveBusine
           <form onSubmit={handleSaveProduct}>
             <div className="form-group" style={{ marginBottom: '10px' }}>
               <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Tên hàng hóa *</label>
-              <input type="text" value={prodName} onChange={(e) => setProdName(e.target.value)} placeholder="Nhập tên sản phẩm..." style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #d0e0d5', fontSize: '13px', boxSizing: 'border-box' }} />
+              <input type="text" value={prodName} onChange={(e) => setProdName(e.target.value)} placeholder="Nhập tên sản phẩm..." style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #d0e0d5', fontSize: '13px', boxSizing: 'border-box' }} required />
             </div>
             <div className="form-group" style={{ marginBottom: '10px' }}>
               <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Phân loại mặt hàng *</label>
@@ -198,12 +207,12 @@ export default function BusinessScreen({ initialMode, businessData, onSaveBusine
               </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Giá xả kho *</label>
-                <input type="number" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} placeholder="20000" style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #d0e0d5', fontSize: '13px', boxSizing: 'border-box' }} />
+                <input type="number" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} placeholder="20000" style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #d0e0d5', fontSize: '13px', boxSizing: 'border-box' }} required />
               </div>
             </div>
             <div className="form-group" style={{ marginBottom: '10px' }}>
               <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Số lượng tồn kho *</label>
-              <input type="number" value={prodStock} onChange={(e) => setProdStock(e.target.value)} placeholder="Số lượng hiện tại" style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #d0e0d5', fontSize: '13px', boxSizing: 'border-box' }} />
+              <input type="number" value={prodStock} onChange={(e) => setProdStock(e.target.value)} placeholder="Số lượng hiện tại" style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #d0e0d5', fontSize: '13px', boxSizing: 'border-box' }} required />
             </div>
             <div className="form-group" style={{ marginBottom: '16px' }}>
               <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Tình trạng / Mô tả chi tiết</label>
@@ -234,12 +243,12 @@ export default function BusinessScreen({ initialMode, businessData, onSaveBusine
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '14px', textAlign: 'center' }}>
           <div style={{ background: '#e9f8ee', padding: '10px', borderRadius: '12px' }}>
-            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#159447' }}>{products.length}</div>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#159447' }}>{myProducts.length}</div>
             <div style={{ fontSize: '11px', color: '#6b776f' }}>Mặt hàng quản lý</div>
           </div>
           <div style={{ background: '#e9f8ee', padding: '10px', borderRadius: '12px' }}>
             <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#159447' }}>
-              {products.reduce((acc, p) => acc + Number(p.stock), 0)}
+              {myProducts.reduce((acc, p) => acc + Number(p.stock), 0)}
             </div>
             <div style={{ fontSize: '11px', color: '#6b776f' }}>Tổng số lượng tồn</div>
           </div>
@@ -250,24 +259,24 @@ export default function BusinessScreen({ initialMode, businessData, onSaveBusine
         </button>
 
         <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#183b25', marginBottom: '8px', borderBottom: '2px solid #e2eee6', paddingBottom: '4px' }}>
-          Danh sách hàng hóa thực tế ({products.length})
+          Danh sách hàng hóa thực tế ({myProducts.length})
         </div>
 
-        {products.length === 0 ? (
+        {myProducts.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '24px 0', color: '#999', fontSize: '13px', background: '#f9fcf9', borderRadius: '12px', border: '1px dashed #d0e0d5' }}>
             Chưa có mặt hàng nào được đăng tải.<br />
             Hãy bấm nút "Thêm mặt hàng" để bắt đầu!
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
-            {products.map(p => (
+            {myProducts.map(p => (
               <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: '#fcfdfc', borderRadius: '10px', border: '1px solid #e0ebe7', gap: '10px' }}>
                 <div style={{ fontSize: '24px', width: '36px', height: '36px', background: '#f4f8f5', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {p.image.length > 2 ? '📦' : p.image}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#183b25', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                  <div style={{ fontSize: '11px', color: '#6b776f' }}>{p.category} • Tồn: <strong style={{ color: '#159447' }}>{p.stock}</strong></div>
+                  <div style={{ fontSize: '11px', color: '#6b776f' }}>{p.category} | Tồn: <strong style={{ color: '#159447' }}>{p.stock}</strong></div>
                   <div style={{ fontSize: '10px', color: '#e65100', fontStyle: 'italic' }}>Tình trạng: {p.desc}</div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>

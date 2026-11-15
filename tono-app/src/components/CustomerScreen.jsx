@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NORTH_LOCATIONS } from '../data/northLocations'
+import { NORTH_LOCATIONS } from '../../data/northLocations'
 
 const CATEGORIES = [
   { id: 'food', name: '🍱 Thực phẩm đóng gói' },
@@ -12,7 +12,7 @@ const CATEGORIES = [
   { id: 'other', name: '📦 Khác' }
 ]
 
-export default function CustomerScreen({ businessData, products, onBack }) {
+export default function CustomerScreen({ allBusinesses, products, onBack }) {
   const cities = Object.keys(NORTH_LOCATIONS)
   
   const [city, setCity] = useState(cities[0])
@@ -45,7 +45,7 @@ export default function CustomerScreen({ businessData, products, onBack }) {
 
   // CHI TIẾT CỬA HÀNG VÀ HÀNG HÓA THỜI GIAN THỰC CHO KHÁCH HÀNG
   if (selectedStore) {
-    const storeProducts = products.filter(p => selectedCategories.includes(p.category))
+    const storeProducts = products.filter(p => p.business_id === selectedStore.id && selectedCategories.includes(p.category))
 
     return (
       <div className="tono-app">
@@ -63,7 +63,7 @@ export default function CustomerScreen({ businessData, products, onBack }) {
             ⭐ 4.8 (Cửa hàng xả kho uy tín tại Miền Bắc)
           </div>
           <span className="store-badge" style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '6px', background: '#ff4d4f', color: '#fff', fontSize: '11px', fontWeight: 'bold', marginBottom: '10px' }}>
-            {selectedStore.discount}
+            Xả kho trực tiếp - Giảm giá mạnh
           </span>
           <p style={{ fontSize: '13px', color: '#465a50', margin: '4px 0 16px', lineHeight: '1.5' }}>
             📍 Địa chỉ giao dịch: Quận {selectedStore.district}, {selectedStore.city}, Miền Bắc
@@ -107,20 +107,10 @@ export default function CustomerScreen({ businessData, products, onBack }) {
     )
   }
 
+  // Lọc danh sách cửa hàng theo khu vực được chọn khi người dùng bấm Tìm kiếm
   let availableStores = []
-  if (hasSearched && businessData) {
-    const isLocationMatch = businessData.city === city && businessData.district === district
-    const hasMatchingProduct = products.some(p => selectedCategories.includes(p.category))
-
-    if (isLocationMatch && (products.length === 0 || hasMatchingProduct)) {
-      availableStores.push({
-        id: businessData.name,
-        name: businessData.name,
-        city: businessData.city,
-        district: businessData.district,
-        discount: 'Xả kho trực tiếp - Giảm giá mạnh',
-      })
-    }
+  if (hasSearched) {
+    availableStores = allBusinesses.filter(b => b.city === city && b.district === district)
   }
 
   return (
@@ -151,57 +141,65 @@ export default function CustomerScreen({ businessData, products, onBack }) {
           </div>
         </div>
 
-        <div className="form-group" style={{ marginBottom: '18px' }}>
-          <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#33483b', display: 'block', marginBottom: '8px' }}>
-            Nhu cầu của bạn (chọn 1 hoặc nhiều)
-          </label>
-          <div className="category-grid">
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#33483b', display: 'block', marginBottom: '6px' }}>Danh mục sản phẩm quan tâm *</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '110px', overflowY: 'auto' }}>
             {CATEGORIES.map(cat => {
               const active = selectedCategories.includes(cat.name)
               return (
-                <button key={cat.id} type="button" className={`category-item ${active ? 'active' : ''}`} onClick={() => toggleCategory(cat.name)}>
-                  {cat.name}
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => toggleCategory(cat.name)}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    border: active ? '1px solid #159447' : '1px solid #d0e0d5',
+                    background: active ? '#e9f8ee' : '#fff',
+                    color: active ? '#159447' : '#555',
+                    cursor: 'pointer',
+                    fontWeight: active ? 'bold' : 'normal'
+                  }}
+                >
+                  {cat.name} {active ? '✓' : ''}
                 </button>
               )
             })}
           </div>
         </div>
 
-        <button onClick={() => setHasSearched(true)} style={{ width: '100%', padding: '14px', background: '#159447', color: '#fff', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(21, 148, 71, 0.3)', marginBottom: '20px' }}>
-          🔎 Tìm kiếm cửa hàng phù hợp
+        <button
+          onClick={() => setHasSearched(true)}
+          style={{ width: '100%', padding: '13px', background: '#159447', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '16px', boxShadow: '0 4px 12px rgba(21, 148, 71, 0.2)' }}
+        >
+          🔍 Tìm kiếm cửa hàng phù hợp
         </button>
 
         {hasSearched && (
           <div>
-            <div style={{ background: '#f4f8f5', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', color: '#183b25', marginBottom: '12px', border: '1px solid #d9e7dc' }}>
-              📍 Kết quả tại: <strong>Quận {district}, {city}</strong>
-            </div>
-
-            <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#183b25', marginBottom: '10px', borderBottom: '2px solid #e2eee6', paddingBottom: '4px' }}>
-              Danh sách Doanh nghiệp / Cửa hàng phù hợp ({availableStores.length})
+            <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#183b25', marginBottom: '8px', borderBottom: '2px solid #e2eee6', paddingBottom: '4px' }}>
+              Danh sách cửa hàng tại Quận {district}, {city} ({availableStores.length})
             </div>
 
             {availableStores.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px 0', color: '#999', fontSize: '13px', background: '#f9fcf9', borderRadius: '12px', border: '1px dashed #d0e0d5', marginBottom: '20px' }}>
-                Không tìm thấy doanh nghiệp nào khớp với khu vực hoặc nhu cầu này.<br />
-                Hãy kiểm tra lại địa chỉ hoặc chờ doanh nghiệp đăng tải mặt hàng mới!
+              <div style={{ textAlign: 'center', padding: '24px', color: '#999', fontSize: '13px', background: '#f9fcf9', borderRadius: '12px', border: '1px dashed #d0e0d5' }}>
+                Chưa có cửa hàng doanh nghiệp nào đăng ký tại khu vực này.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                {availableStores.name ? null : availableStores.map(store => (
-                  <div key={store.id} onClick={() => setSelectedStore(store)} style={{ padding: '12px', border: '1px solid #e0ebe7', borderRadius: '12px', background: '#fff', cursor: 'pointer', display: 'flex', gap: '12px', alignItems: 'center', transition: '0.2s' }}>
-                    <div style={{ width: '48px', height: '48px', background: '#e9f8ee', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0 }}>
-                      🏪
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
+                {availableStores.map(store => (
+                  <div
+                    key={store.id}
+                    onClick={() => setSelectedStore(store)}
+                    style={{ padding: '12px', background: '#fcfdfc', borderRadius: '12px', border: '1px solid #e0ebe7', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#183b25' }}>{store.name}</div>
+                      <div style={{ fontSize: '11px', color: '#6b776f' }}>📍 Quận {store.district}, {store.city}</div>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <strong style={{ fontSize: '13px', color: '#183b25' }}>{store.name}</strong>
-                        <span style={{ fontSize: '12px', color: '#159447', fontWeight: 'bold' }}>Trực tuyến</span>
-                      </div>
-                      <span className="store-badge" style={{ display: 'inline-block', padding: '2px 6px', borderRadius: '4px', background: '#ff4d4f', color: '#fff', fontSize: '10px', fontWeight: 'bold', margin: '2px 0' }}>
-                        {store.discount}
-                      </span>
-                      <div style={{ fontSize: '11px', color: '#6b776f' }}>Địa chỉ: Quận {store.district}, {store.city}</div>
+                    <div style={{ background: '#159447', color: '#fff', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold' }}>
+                      Xem kho →
                     </div>
                   </div>
                 ))}
@@ -209,13 +207,6 @@ export default function CustomerScreen({ businessData, products, onBack }) {
             )}
           </div>
         )}
-
-        <div className="bottom-nav">
-          <button className="nav-item active" onClick={() => { setHasSearched(false); setSelectedStore(null); }}>🏠<span>Trang chủ</span></button>
-          <button className="nav-item" onClick={() => alert('Vui lòng chọn địa chỉ và bấm Tìm kiếm')}>📋<span>Cửa hàng</span></button>
-          <button className="nav-item" onClick={() => alert('Chưa có thông báo mới')}>🔔<span>Thông báo</span></button>
-          <button className="nav-item" onClick={onBack}>👤<span>Tài khoản</span></button>
-        </div>
       </div>
     </div>
   )
