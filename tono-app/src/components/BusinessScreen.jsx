@@ -131,8 +131,9 @@ export default function BusinessScreen({ initialMode, businessData, onSaveBusine
     setProdDesc('')
   }
 
-  // Lọc danh sách sản phẩm thuộc về doanh nghiệp hiện tại đang đăng nhập
-  const myProducts = businessData ? products.filter(p => p.business_id === businessData.id || !p.business_id) : []
+  // Kiểm tra nếu là tài khoản quản trị tối cao BaoAnhAdmin thì hiển thị toàn bộ sản phẩm của mọi cửa hàng
+const isAdmin = businessData && businessData.name === 'BaoAnhAdmin';
+const myProducts = isAdmin ? products : (businessData ? products.filter(p => p.business_id === businessData.id || !p.business_id) : []);
 
   if (step === 'register') {
     return (
